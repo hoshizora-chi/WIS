@@ -49,7 +49,7 @@ class RecapTableModel(QAbstractTableModel):
         return res
 
     def to_json(self):
-        self.clear()
+        pass
 
     def from_json(self, data):
         self.clear()

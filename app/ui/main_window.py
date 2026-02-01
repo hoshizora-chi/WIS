@@ -1,13 +1,10 @@
 from qtpy.QtWidgets import QMainWindow, QInputDialog
 from app.ui.table_page import TablePage
 from qtpy.QtWidgets import QTabWidget
-
 from app.model.WI_model import WITableModel
-from app.model.P_model import PTableModel
 from app.model.input_model import InputTableModel
-from app.model.agenda_model import AgendaTableModel
+from app.model.recap_model import RecapTableModel
 from qtpy.QtWidgets import QAction
-
 import json
 from qtpy.QtWidgets import QFileDialog, QMessageBox
 
@@ -21,17 +18,25 @@ class MainWindow(QMainWindow):
 
         # Example pages
         self.models = {
-            "Pelatihan": PTableModel(),
-            "Agenda": AgendaTableModel(),
-            "Input": InputTableModel(),
+            "Input": InputTableModel(45),
         }
         self.models["WI"] = WITableModel(self.models["Input"])
+        self.models["Rekap"] = RecapTableModel(
+                self.models["Input"],
+                self.models["WI"]
+            )
 
         tabs = QTabWidget()
         self.setCentralWidget(tabs)
         for name, model in self.models.items():
             if name == "Input":
-                tabs.addTab(TablePage(model, wi_model=self.models["WI"]), name)
+                tabs.addTab(
+                    TablePage(
+                        model,
+                        wi_model=self.models["WI"],
+                    ),
+                    name
+                )
             else:
                 tabs.addTab(TablePage(model), name)
 
@@ -42,6 +47,14 @@ class MainWindow(QMainWindow):
         self._create_settings_menu()
         self._connect_dirty_signals()
         self.new_file()
+
+        self.models["Input"].validationFailed.connect(
+                self.show_validation_error
+            )
+
+        self.models["WI"].nameChanged.connect(
+                self.models["Input"].update_wi_name
+            )
 
     def _create_file_menu(self):
         file_menu = self.menuBar().addMenu("File")
@@ -88,6 +101,7 @@ class MainWindow(QMainWindow):
 
         if ok:
             self.jp_duration = new_duration
+            self.models["Input"].set_jp_duration(new_duration)
             self._mark_dirty()
 
     def new_file(self):
@@ -98,7 +112,7 @@ class MainWindow(QMainWindow):
             model.clear()
 
         self.current_file = None
-        self.is_dirty = True
+        self.is_dirty = False
         self.jp_duration = 45
         self._update_title()
 
@@ -156,9 +170,10 @@ class MainWindow(QMainWindow):
             with open(path, "r", encoding="utf-8") as f:
                 data = json.load(f)
 
-            self.jp_duration = data.get("jp_duration", 45)  # Default to 45 if not found
+            self.jp_duration = data.get("jp_duration", 45)
+            self.models["Input"].set_jp_duration(self.jp_duration)
 
-            model_data = data.get("models", data)  # Handle old format
+            model_data = data.get("models", data)
 
             for name, model in self.models.items():
                 if name in model_data:
@@ -175,6 +190,9 @@ class MainWindow(QMainWindow):
         name = self.current_file or "Untitled"
         star = "*" if self.is_dirty else ""
         self.setWindowTitle(f"WIS — {name}{star}")
+
+    def show_validation_error(self, message):
+        QMessageBox.warning(self, "Validation Error", message)
 
     def _connect_dirty_signals(self):
         for name, model in self.models.items():

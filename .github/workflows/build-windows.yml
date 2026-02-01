@@ -26,9 +26,9 @@ jobs:
 
       - name: Build EXE
         run: |
-          pyinstaller --onefile --noconsole ^
-            --name WIS ^
-            --hidden-import PySide6.QtCore ^
+          pyinstaller --onefile --noconsole `
+            --name WIS `
+            --hidden-import PySide6.QtCore `
             app.main.py
 
       - name: Upload EXE

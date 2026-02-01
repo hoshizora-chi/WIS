@@ -1,8 +1,9 @@
 from qtpy.QtCore import QAbstractTableModel, Qt, QModelIndex
+from app.model.input_model import InputTableModel
 
 
 class WITableModel(QAbstractTableModel):
-    def __init__(self):
+    def __init__(self, input_model):
         super().__init__()
 
         # Example domain data (replace later)
@@ -14,13 +15,32 @@ class WITableModel(QAbstractTableModel):
         self.delegates = {
         }
 
+        self.input_model = input_model
+
+        self.input_model.dataChanged.connect(self.recalculate)
+        self.input_model.rowsInserted.connect(self.recalculate)
+        self.input_model.rowsRemoved.connect(self.recalculate)
+        self.input_model.modelReset.connect(self.recalculate)
+        self.recalculate()
+
+    def recalculate(self, *args):
+        for row in self._data:
+            name = row[0]
+            row[1] = self.input_model.total_jp_for_name(name)
+
+        self.beginResetModel()
+        self.endResetModel()
+
     def flags(self, index):
-        base = super().flags(index)
+        if not index.isValid():
+            return Qt.NoItemFlags
+
+        flags = Qt.ItemIsSelectable | Qt.ItemIsEnabled | Qt.ItemIsEditable
 
         if index.column() == 1:
-            return base & ~Qt.ItemIsEditable   # make column 0 read-only
+            flags &= ~Qt.ItemIsEditable
 
-        return base
+        return flags
 
     def rowCount(self, parent=QModelIndex()):
         return len(self._data)
@@ -47,9 +67,6 @@ class WITableModel(QAbstractTableModel):
             return self.headers[section]
 
         return section + 1
-
-    def flags(self, index):
-        return Qt.ItemIsSelectable | Qt.ItemIsEnabled | Qt.ItemIsEditable
 
     def setData(self, index, value, role=Qt.EditRole):
         if role != Qt.EditRole:
@@ -89,7 +106,7 @@ class WITableModel(QAbstractTableModel):
         return res
 
     def to_json(self):
-        return self._data,
+        return self._data
 
     def from_json(self, data):
         self.beginResetModel()

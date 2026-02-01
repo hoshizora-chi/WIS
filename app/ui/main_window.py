@@ -21,11 +21,11 @@ class MainWindow(QMainWindow):
 
         # Example pages
         self.models = {
-            "WI": WITableModel(),
             "Pelatihan": PTableModel(),
             "Agenda": AgendaTableModel(),
             "Input": InputTableModel(),
         }
+        self.models["WI"] = WITableModel(self.models["Input"])
 
         tabs = QTabWidget()
         self.setCentralWidget(tabs)
@@ -79,7 +79,7 @@ class MainWindow(QMainWindow):
         if self.current_file is None:
             self.save_file_as()
         data = {
-            name: model.to_json()[0]
+            name: model.to_json()
             for name, model in self.models.items()
         }
 

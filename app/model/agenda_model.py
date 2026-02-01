@@ -81,7 +81,7 @@ class AgendaTableModel(QAbstractTableModel):
         return res
 
     def to_json(self):
-        return self._data,
+        return self._data
 
     def from_json(self, data):
         self.beginResetModel()

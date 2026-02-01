@@ -91,7 +91,7 @@ class InputTableModel(QAbstractTableModel):
         return res
 
     def to_json(self):
-        return self._data,
+        return self._data
 
     def from_json(self, data):
         self.beginResetModel()
@@ -105,7 +105,7 @@ class InputTableModel(QAbstractTableModel):
         self._data = [["" for i in range(0, len(self.headers))]]
         self.endResetModel()
 
-    def is_date(text: str) -> bool:
+    def is_date(self, text: str) -> bool:
         text = text.strip()
         try:
             # adjust format if needed
@@ -114,7 +114,7 @@ class InputTableModel(QAbstractTableModel):
         except ValueError:
             return False
 
-    def is_time(text: str) -> bool:
+    def is_time(self, text: str) -> bool:
         text = text.strip()
         try:
             datetime.strptime(text, "%H:%M")
@@ -122,7 +122,7 @@ class InputTableModel(QAbstractTableModel):
         except ValueError:
             return False
 
-    def _is_int(self, text: str) -> bool:
+    def is_int(self, text: str) -> bool:
         text = text.strip()
         if not text:
             return False
@@ -131,3 +131,10 @@ class InputTableModel(QAbstractTableModel):
             return True
         except ValueError:
             return False
+
+    def total_jp_for_name(self, name: str) -> int:
+        total = 0
+        for row in self._data:
+            if row[4] == name:          # column 4 = Name
+                total += int(row[2])    # column 2 = JP
+        return total

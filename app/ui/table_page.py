@@ -1,5 +1,5 @@
 from qtpy.QtWidgets import QWidget, QVBoxLayout, QTableView, QSizePolicy
-from qtpy.QtWidgets import QStyledItemDelegate, QTimeEdit, QDateEdit, QLineEdit
+from qtpy.QtWidgets import QStyledItemDelegate, QTimeEdit, QDateEdit, QLineEdit, QComboBox, QCompleter
 from qtpy.QtCore import QDate
 from qtpy.QtGui import QIntValidator
 from qtpy.QtCore import QTime
@@ -9,9 +9,10 @@ from qtpy.QtWidgets import QMenu
 
 
 class TablePage(QWidget):
-    def __init__(self, model):
+    def __init__(self, model, wi_model=None):
         super().__init__()
 
+        self.wi_model = wi_model
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)  # important
         layout.setSpacing(0)
@@ -41,6 +42,9 @@ class TablePage(QWidget):
                 self.table.setItemDelegateForColumn(col, IntDelegate(self.table))
             elif delegate == "time":
                 self.table.setItemDelegateForColumn(col, TimeDelegate(self.table))
+            elif delegate == "wi":
+                if self.wi_model:
+                    self.table.setItemDelegateForColumn(col, WIDelegate(self.table, self.wi_model))
 
     def open_context_menu(self, pos):
         index = self.table.indexAt(pos)
@@ -90,6 +94,43 @@ class TablePage(QWidget):
 
         for row in rows:
             source_model.removeRows(row)
+
+
+class WIDelegate(QStyledItemDelegate):
+    def __init__(self, parent, wi_model):
+        super().__init__(parent)
+        self.wi_model = wi_model
+
+    def createEditor(self, parent, option, index):
+        editor = QComboBox(parent)
+        editor.setEditable(True)
+        editor.setInsertPolicy(QComboBox.NoInsert)
+
+        if self.wi_model:
+            data_list = []
+            for row in range(self.wi_model.rowCount()):
+                nama = self.wi_model.data(self.wi_model.index(row, 0))
+                jp = self.wi_model.data(self.wi_model.index(row, 1))
+                data_list.append((nama, jp))
+
+            # Sort by JP (the second element in the tuple)
+            data_list.sort(key=lambda x: x[1])
+
+            items = [f"{nama} - {jp}" for nama, jp in data_list]
+
+            completer = QCompleter(items, parent)
+            completer.setCaseSensitivity(Qt.CaseInsensitive)
+            editor.addItems(items)
+            editor.setCompleter(completer)
+
+        return editor
+
+    def setEditorData(self, editor, index):
+        value = index.model().data(index, Qt.EditRole)
+        editor.setCurrentText(value)
+
+    def setModelData(self, editor, model, index):
+        model.setData(index, editor.currentText().split(" - ")[0], Qt.EditRole)
 
 
 class TimeDelegate(QStyledItemDelegate):

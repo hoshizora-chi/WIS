@@ -1,4 +1,4 @@
-from qtpy.QtWidgets import QMainWindow
+from qtpy.QtWidgets import QMainWindow, QInputDialog
 from app.ui.table_page import TablePage
 from qtpy.QtWidgets import QTabWidget
 
@@ -30,11 +30,16 @@ class MainWindow(QMainWindow):
         tabs = QTabWidget()
         self.setCentralWidget(tabs)
         for name, model in self.models.items():
-            tabs.addTab(TablePage(model), name)
+            if name == "Input":
+                tabs.addTab(TablePage(model, wi_model=self.models["WI"]), name)
+            else:
+                tabs.addTab(TablePage(model), name)
 
         self.current_file = None
         self.is_dirty = False
+        self.jp_duration = 45
         self._create_file_menu()
+        self._create_settings_menu()
         self._connect_dirty_signals()
         self.new_file()
 
@@ -64,6 +69,27 @@ class MainWindow(QMainWindow):
             save_as_act,
         ])
 
+    def _create_settings_menu(self):
+        settings_menu = self.menuBar().addMenu("Settings")
+
+        edit_jp_act = QAction("Edit JP duration...", self)
+        edit_jp_act.triggered.connect(self.edit_jp_duration)
+
+        settings_menu.addAction(edit_jp_act)
+
+    def edit_jp_duration(self):
+        new_duration, ok = QInputDialog.getInt(
+            self,
+            "Edit JP",
+            "Panjang JP (Menit):",
+            value=self.jp_duration,
+            minValue=1,
+        )
+
+        if ok:
+            self.jp_duration = new_duration
+            self._mark_dirty()
+
     def new_file(self):
         if not self._maybe_save():
             return
@@ -73,14 +99,21 @@ class MainWindow(QMainWindow):
 
         self.current_file = None
         self.is_dirty = True
+        self.jp_duration = 45
         self._update_title()
 
     def save_file(self):
         if self.current_file is None:
             self.save_file_as()
+            if self.current_file is None:  # User cancelled Save As
+                return
+
         data = {
-            name: model.to_json()
-            for name, model in self.models.items()
+            "jp_duration": self.jp_duration,
+            "models": {
+                name: model.to_json()
+                for name, model in self.models.items()
+            }
         }
 
         with open(self.current_file, "w", encoding="utf-8") as f:
@@ -123,8 +156,13 @@ class MainWindow(QMainWindow):
             with open(path, "r", encoding="utf-8") as f:
                 data = json.load(f)
 
+            self.jp_duration = data.get("jp_duration", 45)  # Default to 45 if not found
+
+            model_data = data.get("models", data)  # Handle old format
+
             for name, model in self.models.items():
-                model.from_json(data[name])
+                if name in model_data:
+                    model.from_json(model_data[name])
 
             self.current_file = path
             self.is_dirty = False

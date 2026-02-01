@@ -70,11 +70,22 @@ class WITableModel(QAbstractTableModel):
 
     def setData(self, index, value, role=Qt.EditRole):
         if role != Qt.EditRole:
-            self._input_error = None
             return False
 
         row = index.row()
         col = index.column()
+
+        if col == 0:  # "Nama" column
+            new_name = value
+            # Check for duplicates
+            for r in range(self.rowCount()):
+                if r != row and self.data(self.index(r, 0), Qt.EditRole) == new_name:
+                    print(f"Error: Name '{new_name}' already exists.")
+                    return False
+
+            old_name = self._data[row][col]
+            if old_name != new_name:
+                self.input_model.update_wi_name(old_name, new_name)
 
         self._data[row][col] = value
         self.dataChanged.emit(index, index, [role])

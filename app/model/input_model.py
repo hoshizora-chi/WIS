@@ -15,7 +15,8 @@ class InputTableModel(QAbstractTableModel):
         self.delegates = {
             0: "date",
             1: "time",
-            2: "int"
+            2: "int",
+            4: "wi"
         }
 
     def rowCount(self, parent=QModelIndex()):
@@ -138,3 +139,10 @@ class InputTableModel(QAbstractTableModel):
             if row[4] == name:          # column 4 = Name
                 total += int(row[2])    # column 2 = JP
         return total
+
+    def update_wi_name(self, old_name, new_name):
+        for i, row in enumerate(self._data):
+            if row[4] == old_name:
+                self._data[i][4] = new_name
+                index = self.index(i, 4)
+                self.dataChanged.emit(index, index, [Qt.EditRole])

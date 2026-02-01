@@ -9,7 +9,7 @@ from qtpy.QtWidgets import QMenu
 
 
 class TablePage(QWidget):
-    def __init__(self, model, wi_model=None):
+    def __init__(self, model, wi_model=None, is_readonly=False):
         super().__init__()
 
         self.wi_model = wi_model
@@ -31,10 +31,11 @@ class TablePage(QWidget):
 
         layout.addWidget(self.table)
 
-        self.table.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.table.customContextMenuRequested.connect(
-            self.open_context_menu
-        )
+        if not is_readonly:
+            self.table.setContextMenuPolicy(Qt.CustomContextMenu)
+            self.table.customContextMenuRequested.connect(
+                self.open_context_menu
+            )
         for col, delegate in model.delegates.items():
             if delegate == "date":
                 self.table.setItemDelegateForColumn(col, DateDelegate(self.table))

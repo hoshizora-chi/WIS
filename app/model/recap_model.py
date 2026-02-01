@@ -1,16 +1,14 @@
 from qtpy.QtCore import QAbstractTableModel, Qt, QModelIndex
+from datetime import datetime
 
 
 class RecapTableModel(QAbstractTableModel):
-    def __init__(self, input_model, wi_model):
+    def __init__(self):
         super().__init__()
 
         # Example domain data (replace later)
-        self.headers = ["Nama Pelatihan"]
+        self.headers = ["-"]
         self._data = [
-            ["P1"],
-            ["P2"],
-            ["P3"],
         ]
         self.delegates = {
         }
@@ -42,38 +40,7 @@ class RecapTableModel(QAbstractTableModel):
         return section + 1
 
     def flags(self, index):
-        return Qt.ItemIsSelectable | Qt.ItemIsEnabled | Qt.ItemIsEditable
-
-    def setData(self, index, value, role=Qt.EditRole):
-        if role != Qt.EditRole:
-            self._input_error = None
-            return False
-
-        row = index.row()
-        col = index.column()
-
-        self._data[row][col] = value
-        self.dataChanged.emit(index, index, [role])
-
-        return True
-
-    def insertRows(self, row, count=1, parent=QModelIndex()):
-        self.beginInsertRows(parent, row, row + count - 1)
-
-        for _ in range(count):
-            self._data.insert(row, self._empty_row())
-
-        self.endInsertRows()
-        return True
-
-    def removeRows(self, row, count=1, parent=QModelIndex()):
-        self.beginRemoveRows(parent, row, row + count - 1)
-
-        for _ in range(count):
-            del self._data[row]
-
-        self.endRemoveRows()
-        return True
+        return Qt.ItemIsSelectable | Qt.ItemIsEnabled
 
     def _empty_row(self):
         res = []
@@ -82,16 +49,71 @@ class RecapTableModel(QAbstractTableModel):
         return res
 
     def to_json(self):
-        return self._data
+        self.clear()
 
     def from_json(self, data):
-        self.beginResetModel()
-        self._data = data
-        if len(data) == 0:
-            self._data = [["" for i in range(0, len(self.headers))]]
-        self.endResetModel()
+        self.clear()
 
     def clear(self):
         self.beginResetModel()
         self._data = [["" for i in range(0, len(self.headers))]]
+        self.endResetModel()
+
+    def get_wi_name(self, data):
+        self.headers = [name for name, JP in data]
+        if not self.headers:
+            return
+
+        self.headerDataChanged.emit(
+            Qt.Horizontal,
+            0,
+            len(self.headers) - 1
+        )
+
+        self.headers.sort()
+        self.headers = ["Tgl"] + self.headers
+
+    def get_recap(self, data):
+        data_res = {
+                name: [] for name in self.headers[1:]
+        }
+
+        for row in data:
+            data_res[row[6]].append([
+                str(row[0]),
+                str(row[4]),
+                str(row[5]),
+            ])
+
+        for name, item in data_res.items():
+            item.sort(key=lambda r: datetime.strptime(r[0], "%d-%m-%Y"))
+
+        all_dates = set()
+
+        for items in data_res.values():
+            for date, _, _ in items:
+                all_dates.add(date)
+
+        all_dates = sorted(
+            all_dates,
+            key=lambda d: datetime.strptime(d, "%d-%m-%Y")
+        )
+
+        lookup = {}
+        for name, items in data_res.items():
+            for date, v1, v2 in items:
+                lookup[(date, name)] = v1 + " - " + v2
+
+        names = sorted(data_res.keys())
+        result = []
+        for date in all_dates:
+            row = [date]
+            for name in names:
+                row.append(lookup.get((date, name), "-"))
+            result.append(row)
+
+        print(result)
+
+        self.beginResetModel()
+        self._data = result
         self.endResetModel()

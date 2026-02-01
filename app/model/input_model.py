@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 
 class InputTableModel(QAbstractTableModel):
     validationFailed = Signal(str)
+    inputChanged = Signal()
 
     def __init__(self, jp_duration):
         super().__init__()
@@ -124,6 +125,7 @@ class InputTableModel(QAbstractTableModel):
 
         self._data[row][col] = value
         self.dataChanged.emit(index, index, [role])
+        self.inputChanged.emit()
 
         if col in (1, 2):  # If Jam Mulai or JP changes, update Jam Berakhir
             jam_berakhir_index = self.index(row, 3)
@@ -137,6 +139,7 @@ class InputTableModel(QAbstractTableModel):
         for _ in range(count):
             self._data.insert(row, self._empty_row())
 
+        self.inputChanged.emit()
         self.endInsertRows()
         return True
 
@@ -146,6 +149,7 @@ class InputTableModel(QAbstractTableModel):
         for _ in range(count):
             del self._data[row]
 
+        self.inputChanged.emit()
         self.endRemoveRows()
         return True
 
@@ -159,14 +163,17 @@ class InputTableModel(QAbstractTableModel):
         return self._data
 
     def from_json(self, data):
+        self.beginResetModel()
         self._data = data
         if len(self._data) == 0:
             self._data = [["" for _ in range(len(self.headers))]]
+        self.inputChanged.emit()
         self.endResetModel()
 
     def clear(self):
         self.beginResetModel()
         self._data = [["" for i in range(0, len(self.headers))]]
+        self.inputChanged.emit()
         self.endResetModel()
 
     def set_jp_duration(self, jp_duration):
@@ -208,20 +215,6 @@ class InputTableModel(QAbstractTableModel):
                 if self.is_int(str(row[2])):
                     total += int(row[2])
         return total
-
-    def recap_for_name(self, name):
-        res = []
-        for row in self._data:
-            if row[6] == name:
-                if self.is_date(str(row[2])):
-                    res.append([
-                        str(row[2]),
-                        str(row[4]),
-                        str(row[5]),
-                        str(row[6]),
-                    ])
-
-        res.sort(key=lambda r: datetime.strptime(r[0], "%d-%m-%Y"))
 
     def update_wi_name(self, old_name, new_name):
         for i, row in enumerate(self._data):

@@ -19,12 +19,9 @@ class MainWindow(QMainWindow):
         # Example pages
         self.models = {
             "Input": InputTableModel(45),
+            "Rekap": RecapTableModel(),
         }
         self.models["WI"] = WITableModel(self.models["Input"])
-        self.models["Rekap"] = RecapTableModel(
-                self.models["Input"],
-                self.models["WI"]
-            )
 
         tabs = QTabWidget()
         self.setCentralWidget(tabs)
@@ -34,6 +31,14 @@ class MainWindow(QMainWindow):
                     TablePage(
                         model,
                         wi_model=self.models["WI"],
+                    ),
+                    name
+                )
+            elif name == "Rekap":
+                tabs.addTab(
+                    TablePage(
+                        model,
+                        is_readonly=True
                     ),
                     name
                 )
@@ -48,6 +53,8 @@ class MainWindow(QMainWindow):
         self._connect_dirty_signals()
         self.new_file()
 
+        self.models["Rekap"].get_wi_name(self.models["WI"]._data)
+
         self.models["Input"].validationFailed.connect(
                 self.show_validation_error
             )
@@ -55,6 +62,18 @@ class MainWindow(QMainWindow):
         self.models["WI"].nameChanged.connect(
                 self.models["Input"].update_wi_name
             )
+
+        self.models["WI"].WIChanged.connect(
+                self.update_rekap
+            )
+
+        self.models["Input"].inputChanged.connect(
+                self.update_rekap
+            )
+
+    def update_rekap(self):
+        self.models["Rekap"].get_wi_name(self.models["WI"]._data)
+        self.models["Rekap"].get_recap(self.models["Input"]._data)
 
     def _create_file_menu(self):
         file_menu = self.menuBar().addMenu("File")

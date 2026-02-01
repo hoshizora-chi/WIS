@@ -3,6 +3,7 @@ from qtpy.QtCore import QAbstractTableModel, Qt, QModelIndex, Signal
 
 class WITableModel(QAbstractTableModel):
     nameChanged = Signal(str, str)
+    WIChanged = Signal()
 
     def __init__(self, input_model):
         super().__init__()
@@ -91,6 +92,7 @@ class WITableModel(QAbstractTableModel):
 
         self._data[row][col] = value
         self.dataChanged.emit(index, index, [role])
+        self.WIChanged.emit()
 
         return True
 
@@ -100,6 +102,7 @@ class WITableModel(QAbstractTableModel):
         for _ in range(count):
             self._data.insert(row, self._empty_row())
 
+        self.WIChanged.emit()
         self.endInsertRows()
         return True
 
@@ -109,6 +112,7 @@ class WITableModel(QAbstractTableModel):
         for _ in range(count):
             del self._data[row]
 
+        self.WIChanged.emit()
         self.endRemoveRows()
         return True
 
@@ -127,9 +131,10 @@ class WITableModel(QAbstractTableModel):
         if len(data) == 0:
             self._data = [["" for i in range(0, len(self.headers))]]
         self.endResetModel()
+        self.WIChanged.emit()
 
     def clear(self):
         self.beginResetModel()
         self._data = [["" for i in range(0, len(self.headers))]]
         self.endResetModel()
-
+        self.WIChanged.emit()

@@ -5,7 +5,7 @@ class WITableModel(QAbstractTableModel):
     nameChanged = Signal(str, str)
     WIChanged = Signal()
 
-    def __init__(self, input_model):
+    def __init__(self, input_model=None):
         super().__init__()
 
         # Example domain data (replace later)
@@ -17,6 +17,10 @@ class WITableModel(QAbstractTableModel):
         self.delegates = {
         }
 
+        if input_model:
+            self.set_input_model(input_model)
+
+    def set_input_model(self, input_model):
         self.input_model = input_model
 
         self.input_model.dataChanged.connect(self.recalculate)

@@ -6,9 +6,10 @@ class InputTableModel(QAbstractTableModel):
     validationFailed = Signal(str)
     inputChanged = Signal()
 
-    def __init__(self, jp_duration):
+    def __init__(self, jp_duration, wi_model=None):
         super().__init__()
 
+        self.wi_model = wi_model
         self.jp_duration = jp_duration
 
         # Example domain data (replace later)
@@ -81,6 +82,19 @@ class InputTableModel(QAbstractTableModel):
 
         row = index.row()
         col = index.column()
+
+        if col == 6 and self.wi_model:  # "Nama WI" column
+            wi_names = [self.wi_model.data(self.wi_model.index(r, 0)) for r in range(self.wi_model.rowCount())]
+            if value not in wi_names:
+                for name in wi_names:
+                    if value.lower() == name.lower():
+                        value = name  # Autocorrect case
+                        break
+                else:
+                    # No case-insensitive match found
+                    self.validationFailed.emit(f"Nama WI '{value}' tidak ditemukan di tabel WI.")
+                    return False
+
 
         # --- Validation logic starts here ---
         wi_name = self._data[row][6] if col != 6 else value

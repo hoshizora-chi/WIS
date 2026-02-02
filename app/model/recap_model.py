@@ -73,9 +73,9 @@ class RecapTableModel(QAbstractTableModel):
         self.headers.sort()
         self.headers = ["Tgl"] + self.headers
 
-    def get_recap(self, data):
+    def get_recap(self, data, data_wi):
         data_res = {
-                name: [] for name in self.headers[1:]
+                name: [] for name, jp in data_wi
         }
 
         for row in data:
@@ -111,8 +111,6 @@ class RecapTableModel(QAbstractTableModel):
             for name in names:
                 row.append(lookup.get((date, name), "-"))
             result.append(row)
-
-        print(result)
 
         self.beginResetModel()
         self._data = result

@@ -5,6 +5,7 @@ from app.model.WI_model import WITableModel
 from app.model.input_model import InputTableModel
 from app.model.recap_model import RecapTableModel
 from qtpy.QtWidgets import QAction
+from qtpy.QtCore import Qt
 import json
 from qtpy.QtWidgets import QFileDialog, QMessageBox
 
@@ -21,7 +22,10 @@ class MainWindow(QMainWindow):
             "Input": InputTableModel(45),
             "Rekap": RecapTableModel(),
         }
-        self.models["WI"] = WITableModel(self.models["Input"])
+        self.models["WI"] = WITableModel()
+        self.models["Input"].wi_model = self.models["WI"]
+        self.models["WI"].set_input_model(self.models["Input"])
+
 
         tabs = QTabWidget()
         self.setCentralWidget(tabs)
@@ -73,7 +77,9 @@ class MainWindow(QMainWindow):
 
     def update_rekap(self):
         self.models["Rekap"].get_wi_name(self.models["WI"]._data)
-        self.models["Rekap"].get_recap(self.models["Input"]._data)
+        self.models["Rekap"].get_recap(
+                self.models["Input"]._data, 
+                self.models["WI"]._data)
 
     def _create_file_menu(self):
         file_menu = self.menuBar().addMenu("File")
@@ -94,11 +100,17 @@ class MainWindow(QMainWindow):
         save_as_act.setShortcut("Ctrl+Shift+S")
         save_as_act.triggered.connect(self.save_file_as)
 
+        file_menu.addSeparator()
+
+        export_excel_act = QAction("Export Excel…", self)
+        export_excel_act.triggered.connect(self.export_to_excel)
+
         file_menu.addActions([
             new_act,
             open_act,
             save_act,
             save_as_act,
+            export_excel_act,
         ])
 
     def _create_settings_menu(self):
@@ -250,3 +262,47 @@ class MainWindow(QMainWindow):
             return True
 
         return False
+
+    def export_to_excel(self):
+        try:
+            import openpyxl
+        except ImportError:
+            QMessageBox.critical(self, "Error", "openpyxl is not installed. Please install it using: pip install openpyxl")
+            return
+
+        path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Export Excel",
+            "",
+            "Excel Files (*.xlsx)"
+        )
+
+        if not path:
+            return
+
+        if not path.endswith(".xlsx"):
+            path += ".xlsx"
+
+        try:
+            wb = openpyxl.Workbook()
+            # Remove the default sheet
+            if "Sheet" in wb.sheetnames:
+                del wb["Sheet"]
+
+            for name, model in self.models.items():
+                sheet = wb.create_sheet(title=name)
+
+                # Write headers
+                headers = [model.headerData(i, Qt.Horizontal) for i in range(model.columnCount())]
+                sheet.append(headers)
+
+                # Write data
+                for r in range(model.rowCount()):
+                    row_data = [model.data(model.index(r, c)) for c in range(model.columnCount())]
+                    sheet.append(row_data)
+            
+            wb.save(path)
+            QMessageBox.information(self, "Export Successful", f"Data successfully exported to {path}")
+
+        except Exception as e:
+            QMessageBox.critical(self, "Export failed", str(e))

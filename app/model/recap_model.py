@@ -107,9 +107,9 @@ class RecapTableModel(QAbstractTableModel):
         for name, items in data_res.items():
             for date, v1, v2 in items:
                 if (date, name) in lookup:
-                    lookup[(date, name)] += "\n" + v1 + " - " + v2
+                    lookup[(date, name)] += " \n| " + v1 + " - " + v2
                 else:
-                    lookup[(date, name)] = v1 + " - " + v2
+                    lookup[(date, name)] = "| " + v1 + " - " + v2
 
         names = sorted(data_res.keys())
         result = []

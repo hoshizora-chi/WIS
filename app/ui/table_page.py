@@ -29,6 +29,11 @@ class TablePage(QWidget):
             QHeaderView.Stretch
         )
 
+        self.table.setWordWrap(True)
+        self.table.verticalHeader().setSectionResizeMode(
+            QHeaderView.ResizeToContents
+        )
+
         layout.addWidget(self.table)
 
         if not is_readonly:

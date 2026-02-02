@@ -79,11 +79,15 @@ class RecapTableModel(QAbstractTableModel):
         }
 
         for row in data:
-            data_res[row[6]].append([
-                str(row[0]),
-                str(row[4]),
-                str(row[5]),
-            ])
+            if row[6] in data_res and\
+               row[0] != "" and\
+               row[4] != "" and\
+               row[5] != "":
+                data_res[row[6]].append([
+                    str(row[0]),
+                    str(row[4]),
+                    str(row[5]),
+                ])
 
         for name, item in data_res.items():
             item.sort(key=lambda r: datetime.strptime(r[0], "%d-%m-%Y"))
@@ -102,7 +106,10 @@ class RecapTableModel(QAbstractTableModel):
         lookup = {}
         for name, items in data_res.items():
             for date, v1, v2 in items:
-                lookup[(date, name)] = v1 + " - " + v2
+                if (date, name) in lookup:
+                    lookup[(date, name)] += "\n" + v1 + " - " + v2
+                else:
+                    lookup[(date, name)] = v1 + " - " + v2
 
         names = sorted(data_res.keys())
         result = []
